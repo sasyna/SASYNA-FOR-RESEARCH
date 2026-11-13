@@ -1,0 +1,830 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Sasyna Research Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: orders
+    description: Order management
+  - name: payments
+    description: Payment operations
+  - name: revisions
+    description: Revision requests
+  - name: admin
+    description: Admin operations
+  - name: superadmin
+    description: Super admin operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /orders:
+    get:
+      operationId: getOrders
+      tags: [orders]
+      summary: Get orders (filtered by role)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orders list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order details
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/claim:
+    post:
+      operationId: claimOrder
+      tags: [orders]
+      summary: Admin claims an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusRequest"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/complete:
+    post:
+      operationId: completeOrder
+      tags: [orders]
+      summary: Submit completed work (admin)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteOrderRequest"
+      responses:
+        "200":
+          description: Order completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/refund:
+    post:
+      operationId: requestRefund
+      tags: [orders]
+      summary: Request a refund (student only, before assignment)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Refund requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /payments/initialize:
+    post:
+      operationId: initializePayment
+      tags: [payments]
+      summary: Initialize Paystack payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitializePaymentRequest"
+      responses:
+        "200":
+          description: Payment initialized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitializePaymentResponse"
+
+  /payments/verify/{reference}:
+    get:
+      operationId: verifyPayment
+      tags: [payments]
+      summary: Verify Paystack payment
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentVerifyResponse"
+
+  /payments/webhook:
+    post:
+      operationId: paystackWebhook
+      tags: [payments]
+      summary: Paystack webhook handler
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResponse"
+
+  /revisions:
+    get:
+      operationId: getRevisions
+      tags: [revisions]
+      summary: Get revision requests
+      parameters:
+        - name: orderId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revision requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Revision"
+    post:
+      operationId: createRevision
+      tags: [revisions]
+      summary: Submit a revision request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRevisionRequest"
+      responses:
+        "201":
+          description: Revision created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Revision"
+
+  /revisions/{revisionId}/respond:
+    post:
+      operationId: respondToRevision
+      tags: [revisions]
+      summary: Admin responds to revision
+      parameters:
+        - name: revisionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevisionResponseRequest"
+      responses:
+        "200":
+          description: Revision responded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Revision"
+
+  /admin/orders:
+    get:
+      operationId: getAdminOrders
+      tags: [admin]
+      summary: Get all orders for admin view
+      responses:
+        "200":
+          description: All orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin performance stats
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /superadmin/revenue:
+    get:
+      operationId: getRevenue
+      tags: [superadmin]
+      summary: Get revenue analytics (super admin only)
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, last30days, lastmonth, alltime, custom]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revenue data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueData"
+
+  /superadmin/admins:
+    get:
+      operationId: getAdmins
+      tags: [superadmin]
+      summary: Get all admins
+      responses:
+        "200":
+          description: Admins list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+    post:
+      operationId: createAdmin
+      tags: [superadmin]
+      summary: Add a new admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminRequest"
+      responses:
+        "201":
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /superadmin/admins/{adminId}:
+    delete:
+      operationId: deleteAdmin
+      tags: [superadmin]
+      summary: Remove an admin
+      parameters:
+        - name: adminId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Admin removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /superadmin/pricing:
+    get:
+      operationId: getPricing
+      tags: [superadmin]
+      summary: Get pricing configuration
+      responses:
+        "200":
+          description: Pricing config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingConfig"
+    patch:
+      operationId: updatePricing
+      tags: [superadmin]
+      summary: Update pricing configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingConfig"
+      responses:
+        "200":
+          description: Pricing updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingConfig"
+
+  /superadmin/analytics:
+    get:
+      operationId: getPlatformAnalytics
+      tags: [superadmin]
+      summary: Get platform analytics
+      responses:
+        "200":
+          description: Platform analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformAnalytics"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        studentId:
+          type: string
+        studentName:
+          type: string
+        studentEmail:
+          type: string
+        department:
+          type: string
+        courseName:
+          type: string
+        levelOfStudy:
+          type: string
+        serviceType:
+          type: string
+        researchTopic:
+          type: string
+        researchObjectives:
+          type: string
+        additionalInstructions:
+          type: string
+        uploadedFileUrl:
+          type: string
+        status:
+          type: string
+        assignedAdminId:
+          type: string
+        assignedAdminName:
+          type: string
+        depositAmount:
+          type: number
+        totalAmount:
+          type: number
+        depositPaid:
+          type: boolean
+        balancePaid:
+          type: boolean
+        depositReference:
+          type: string
+        balanceReference:
+          type: string
+        completedFileUrl:
+          type: string
+        completedFileLink:
+          type: string
+        revisedFileUrl:
+          type: string
+        revisedFileLink:
+          type: string
+        completedAt:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - orderId
+        - studentId
+        - department
+        - courseName
+        - levelOfStudy
+        - serviceType
+        - researchTopic
+        - researchObjectives
+        - status
+        - depositPaid
+        - balancePaid
+        - createdAt
+
+    CreateOrderRequest:
+      type: object
+      properties:
+        studentId:
+          type: string
+        studentName:
+          type: string
+        studentEmail:
+          type: string
+        department:
+          type: string
+        courseName:
+          type: string
+        levelOfStudy:
+          type: string
+        serviceType:
+          type: string
+        researchTopic:
+          type: string
+        researchObjectives:
+          type: string
+        additionalInstructions:
+          type: string
+        uploadedFileUrl:
+          type: string
+        totalAmount:
+          type: number
+        depositAmount:
+          type: number
+        paymentOption:
+          type: string
+      required:
+        - studentId
+        - department
+        - courseName
+        - levelOfStudy
+        - serviceType
+        - researchTopic
+        - researchObjectives
+
+    UpdateStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    CompleteOrderRequest:
+      type: object
+      properties:
+        fileUrl:
+          type: string
+        fileLink:
+          type: string
+      required: []
+
+    InitializePaymentRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+        email:
+          type: string
+        amount:
+          type: number
+        paymentType:
+          type: string
+      required: [orderId, email, amount, paymentType]
+
+    InitializePaymentResponse:
+      type: object
+      properties:
+        authorizationUrl:
+          type: string
+        accessCode:
+          type: string
+        reference:
+          type: string
+      required: [authorizationUrl, accessCode, reference]
+
+    PaymentVerifyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        orderId:
+          type: string
+        paymentType:
+          type: string
+      required: [status, message]
+
+    WebhookResponse:
+      type: object
+      properties:
+        received:
+          type: boolean
+      required: [received]
+
+    Revision:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        orderDisplayId:
+          type: string
+        studentId:
+          type: string
+        description:
+          type: string
+        fileUrl:
+          type: string
+        status:
+          type: string
+        adminResponse:
+          type: string
+        correctedFileUrl:
+          type: string
+        correctedFileLink:
+          type: string
+        assignedAdminName:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, orderId, studentId, description, status, createdAt]
+
+    CreateRevisionRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+        description:
+          type: string
+        fileUrl:
+          type: string
+      required: [orderId, description]
+
+    RevisionResponseRequest:
+      type: object
+      properties:
+        adminResponse:
+          type: string
+        correctedFileUrl:
+          type: string
+        correctedFileLink:
+          type: string
+        status:
+          type: string
+      required: [adminResponse, status]
+
+    AdminStats:
+      type: object
+      properties:
+        totalCompleted:
+          type: integer
+        totalInProgress:
+          type: integer
+        totalAssigned:
+          type: integer
+        pendingWallet:
+          type: number
+        walletBalance:
+          type: number
+        recentOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+      required: [totalCompleted, totalInProgress, totalAssigned]
+
+    RevenueData:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+        totalDeposits:
+          type: number
+        totalBalances:
+          type: number
+        totalRefunds:
+          type: number
+        orderCount:
+          type: integer
+        adminBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminRevenue"
+        periodLabel:
+          type: string
+      required:
+        [
+          totalRevenue,
+          totalDeposits,
+          totalBalances,
+          totalRefunds,
+          orderCount,
+          periodLabel,
+        ]
+
+    AdminRevenue:
+      type: object
+      properties:
+        adminId:
+          type: string
+        adminName:
+          type: string
+        completedOrders:
+          type: integer
+        totalRevenue:
+          type: number
+      required: [adminId, adminName, completedOrders, totalRevenue]
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        completedOrders:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, email, role, createdAt]
+
+    CreateAdminRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        password:
+          type: string
+        nationalId:
+          type: string
+        phoneNumber:
+          type: string
+      required: [email, name, password]
+
+    PricingConfig:
+      type: object
+      properties:
+        researchProjectPrice:
+          type: number
+        researchProposalPrice:
+          type: number
+        depositPercentage:
+          type: number
+      required:
+        [researchProjectPrice, researchProposalPrice, depositPercentage]
+
+    PlatformAnalytics:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        pendingOrders:
+          type: integer
+        activeOrders:
+          type: integer
+        completedOrders:
+          type: integer
+        totalStudents:
+          type: integer
+        totalAdmins:
+          type: integer
+        recentOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+      required:
+        [
+          totalOrders,
+          pendingOrders,
+          activeOrders,
+          completedOrders,
+          totalStudents,
+          totalAdmins,
+        ]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success, message]
